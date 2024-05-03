@@ -10,7 +10,7 @@
 
   
   <br> <br>
-  <a href="https://arxiv.org/pdf/2402.18302.pdf" target="_blank">Paper</a>
+  <a href="https://arxiv.org/pdf/2405.01258.pdf" target="_blank">Paper</a>
 </div>
 
 <br>
