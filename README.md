@@ -21,6 +21,7 @@
 
 ### Update
 - 2024.04.30 Init repository.
+- 2024.07.11 COD [(PDF)](https://arxiv.org/pdf/2405.01258.pdf) is accepted to SMC2024
 
 ### Abstract
 This paper introduces the task of Auditory Referring
