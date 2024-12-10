@@ -1,0 +1,304 @@
+CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist']
+
+DATA_CONFIG: 
+    _BASE_CONFIG_: cfgs/dataset_configs/kitti_dataset.yaml
+
+
+MODEL:
+    NAME: PointnetRtdetr
+
+    VFE:
+        NAME: DynamicPillarVFESimple2D
+        WITH_DISTANCE: False
+        USE_ABSLOTE_XYZ: True
+        USE_CLUSTER_XYZ: False
+        USE_NORM: True
+        NUM_FILTERS: [32]
+
+    BACKBONE_3D:
+        NAME: PillarBackBone8x
+   
+
+    BACKBONE_2D:
+        NAME: BaseBEVBackboneV1
+
+        LAYER_NUMS: [5, 5]
+        LAYER_STRIDES: [1, 2]
+        NUM_FILTERS: [256, 256]
+        UPSAMPLE_STRIDES: [1, 2]
+        NUM_UPSAMPLE_FILTERS: [128, 128]
+
+    IMG_BACKBONE_2D:
+        NAME: BaseIMGBackboneDETR
+
+        NUM_CLASS: &nc 4  
+        NET:
+            BLOCK_0:         # 0-P2/4
+                NAME: HGStem
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [32, 48]
+
+            BLOCK_1:         # stage 1
+                NAME: HGBlock
+                INPUT: -1
+                NUM_LAYER: 6
+                ARGS: [48, 128, 3]
+
+            BLOCK_2:         # 2-P3/8
+                NAME: DWConv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [128, 3, 2, 1, False]
+
+            BLOCK_3:         # stage 2
+                NAME: HGBlock
+                INPUT: -1
+                NUM_LAYER: 6
+                ARGS: [96, 512, 3]
+
+            BLOCK_4:         # 4-P3/16
+                NAME: DWConv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [512, 3, 2, 1, False]
+
+            BLOCK_5:         # cm, c2, k, light, shortcut
+                NAME: HGBlock
+                INPUT: -1
+                NUM_LAYER: 6
+                ARGS: [192, 1024, 5, True, False]
+
+            BLOCK_6:         
+                NAME: HGBlock
+                INPUT: -1
+                NUM_LAYER: 6
+                ARGS: [192, 1024, 5, True, True]
+
+            BLOCK_7:         # stage 3
+                NAME: HGBlock
+                INPUT: -1
+                NUM_LAYER: 6
+                ARGS: [192, 1024, 5, True, True]
+
+            BLOCK_8:         # 8-P4/32
+                NAME: DWConv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [1024, 3, 2, 1, False]
+
+            BLOCK_9:         # stage 4
+                NAME: HGBlock
+                INPUT: -1
+                NUM_LAYER: 6
+                ARGS: [384, 2048, 5, True, False]
+
+            BLOCK_10:         # 10 input_proj.2
+                NAME: Conv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [256, 1, 1, None, 1, 1, False]            
+
+            BLOCK_11:         # 11 
+                NAME: AIFI
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [1024, 8]    
+
+            BLOCK_12:         # 12, Y5, lateral_convs.0
+                NAME: Conv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [256, 1, 1]   
+
+            BLOCK_13:         # 13,
+                NAME: nn.Upsample
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [None, 2, 'nearest']
+
+            BLOCK_14:         # 14 input_proj.1
+                NAME: Conv
+                INPUT: 7
+                NUM_LAYER: 1
+                ARGS: [256, 1, 1, None, 1, 1, False]
+
+            BLOCK_15:         # 15 
+                NAME: Concat
+                INPUT: [-2, -1]
+                NUM_LAYER: 1
+                ARGS: [1]
+ 
+            BLOCK_16:         # 16, fpn_blocks.0
+                NAME: RepC3
+                INPUT: -1
+                NUM_LAYER: 3
+                ARGS: [256]
+
+            BLOCK_17:         # 17, Y4, lateral_convs.1
+                NAME: Conv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [256, 1, 1]
+
+            BLOCK_18:         # 18, 
+                NAME: nn.Upsample
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [None, 2, 'nearest']
+
+            BLOCK_19:         # 19 input_proj.0
+                NAME: Conv
+                INPUT: 3
+                NUM_LAYER: 1
+                ARGS: [256, 1, 1, None, 1, 1, False]
+
+            BLOCK_20:         # 20 cat backbone P4
+                NAME: Concat
+                INPUT: [-2, -1]
+                NUM_LAYER: 1
+                ARGS: [1]
+
+            BLOCK_21:         # 21, X3 (21), fpn_blocks.1
+                NAME: RepC3
+                INPUT: -1
+                NUM_LAYER: 3
+                ARGS: [256]
+
+            BLOCK_22:         # 22, downsample_convs.0
+                NAME: Conv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [256, 3, 2]
+
+            BLOCK_23:         # 23, cat Y4
+                NAME: Concat
+                INPUT: [-1, 17]
+                NUM_LAYER: 1
+                ARGS: [1]
+
+            BLOCK_24:         # 24,  F4 (24), pan_blocks.0
+                NAME: RepC3
+                INPUT: -1
+                NUM_LAYER: 3
+                ARGS: [256]
+
+            BLOCK_25:         # 25, downsample_convs.1
+                NAME: Conv
+                INPUT: -1
+                NUM_LAYER: 1
+                ARGS: [256, 3, 2]
+
+            BLOCK_26:         # 26, cat Y5
+                NAME: Concat
+                INPUT: [-1, 12]
+                NUM_LAYER: 1
+                ARGS: [1]
+
+            BLOCK_27:         # 27, F5 (27), pan_blocks.1
+                NAME: RepC3
+                INPUT: -1
+                NUM_LAYER: 3
+                ARGS: [256]
+
+            BLOCK_28:         # 28, Detect(P3, P4, P5)
+                NAME: RTDETRDecoder
+                INPUT: [21, 24, 27]
+                NUM_LAYER: 1
+                ARGS: [*nc]
+
+    DENSE_HEAD:
+        NAME: AnchorHeadSingle
+        CLASS_AGNOSTIC: False
+
+        USE_DIRECTION_CLASSIFIER: True
+        DIR_OFFSET: 0.78539
+        DIR_LIMIT_OFFSET: 0.0
+        NUM_DIR_BINS: 2
+
+        ANCHOR_GENERATOR_CONFIG: [
+            {
+                'class_name': 'Car',
+                'anchor_sizes': [[3.9, 1.6, 1.56]],
+                'anchor_rotations': [0, 1.57],
+                'anchor_bottom_heights': [-1.78],
+                'align_center': False,
+                'feature_map_stride': 8,
+                'matched_threshold': 0.6,
+                'unmatched_threshold': 0.45
+            },
+            {
+                'class_name': 'Pedestrian',
+                'anchor_sizes': [[0.8, 0.6, 1.73]],
+                'anchor_rotations': [0, 1.57],
+                'anchor_bottom_heights': [-0.6],
+                'align_center': False,
+                'feature_map_stride': 8,
+                'matched_threshold': 0.5,
+                'unmatched_threshold': 0.35
+            },
+            {
+                'class_name': 'Cyclist',
+                'anchor_sizes': [[1.76, 0.6, 1.73]],
+                'anchor_rotations': [0, 1.57],
+                'anchor_bottom_heights': [-0.6],
+                'align_center': False,
+                'feature_map_stride': 8,
+                'matched_threshold': 0.5,
+                'unmatched_threshold': 0.35
+            }
+        ]
+
+        TARGET_ASSIGNER_CONFIG:
+            NAME: AxisAlignedTargetAssigner
+            POS_FRACTION: -1.0
+            SAMPLE_SIZE: 512
+            NORM_BY_NUM_EXAMPLES: False
+            MATCH_HEIGHT: False
+            BOX_CODER: ResidualCoder
+
+        LOSS_CONFIG:
+            LOSS_WEIGHTS: {
+                'cls_weight': 1.0,
+                'loc_weight': 2.0,
+                'dir_weight': 0.2,
+                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+            }
+
+    POST_PROCESSING:
+        RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
+        SCORE_THRESH: 0.1
+        OUTPUT_RAW_SCORE: False
+
+        EVAL_METRIC: kitti
+        CONF: 0.1
+        SIZE: 640
+
+        NMS_CONFIG:
+            MULTI_CLASSES_NMS: False
+            NMS_TYPE: nms_gpu
+            NMS_THRESH: 0.01
+            NMS_PRE_MAXSIZE: 4096
+            NMS_POST_MAXSIZE: 500
+
+
+OPTIMIZATION:
+    BATCH_SIZE_PER_GPU: 4
+    NUM_EPOCHS: 1
+
+    OPTIMIZER: adam_onecycle
+    LR: 0.003
+    WEIGHT_DECAY: 0.01
+    MOMENTUM: 0.9
+
+    MOMS: [0.95, 0.85]
+    PCT_START: 0.4
+    DIV_FACTOR: 10
+    DECAY_STEP_LIST: [35, 45]
+    LR_DECAY: 0.1
+    LR_CLIP: 0.0000001
+
+    LR_WARMUP: False
+    WARMUP_EPOCH: 1
+
+    GRAD_NORM_CLIP: 10
